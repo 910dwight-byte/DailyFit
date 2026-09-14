@@ -23,12 +23,40 @@ jobs:
           mkdir -p dailyfit-source
           unzip -q DailyFit-Source-Phone-Upload.zip -d dailyfit-source
 
-      - name: Configure AndroidX
+      - name: Configure AndroidX and JVM
         run: |
           printf '%s\n' \
             'android.useAndroidX=true' \
             'android.enableJetifier=true' \
             > dailyfit-source/gradle.properties
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("dailyfit-source/app/build.gradle.kts")
+          s = p.read_text()
+
+          if 'compileOptions' not in s:
+              s = s.replace(
+                  'android {',
+                  '''android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }'''
+              )
+
+          if 'jvmTarget' not in s:
+              s = s.replace(
+                  'android {',
+                  '''android {
+              kotlinOptions {
+                  jvmTarget = "17"
+              }'''
+              )
+
+          p.write_text(s)
+          PY
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
